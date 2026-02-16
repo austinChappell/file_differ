@@ -21,27 +21,41 @@ export default function Home() {
     changes?: { col: number; old: string; new: string }[];
   };
 
-  const parseCSV = (text: string): string[][] => {
-    const lines = text.split('\n').filter(line => line.trim());
-    return lines.map(line => {
-      const cells: string[] = [];
-      let current = '';
-      let inQuotes = false;
+  const parseFile = (text: string, filename: string): string[][] => {
+    const ext = filename.split('.').pop()?.toLowerCase();
 
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          cells.push(current.trim());
-          current = '';
-        } else {
-          current += char;
-        }
+    if (ext === 'json') {
+      try {
+        const json = JSON.parse(text);
+        return JSON.stringify(json, null, 2).split('\n').map(line => [line]);
+      } catch {
+        return text.split('\n').map(line => [line]);
       }
-      cells.push(current.trim());
-      return cells;
-    });
+    } else if (ext === 'html' || ext === 'txt') {
+      return text.split('\n').map(line => [line]);
+    } else {
+      // CSV parsing
+      const lines = text.split('\n').filter(line => line.trim());
+      return lines.map(line => {
+        const cells: string[] = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            cells.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        cells.push(current.trim());
+        return cells;
+      });
+    }
   };
 
   const handleFileChange = async (file: File, fileNumber: 1 | 2) => {
@@ -52,7 +66,7 @@ export default function Home() {
     }
 
     const text = await file.text();
-    const data = parseCSV(text);
+    const data = parseFile(text, file.name);
 
     if (fileNumber === 1) {
       setCsv1Data(data);
@@ -116,7 +130,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-950 dark:to-black">
+    <div className="min-h-screen bg-linear-to-br from-zinc-50 to-zinc-100 dark:from-zinc-950 dark:to-black">
       <div className="h-screen flex flex-col">
         <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm">
           <div className="px-6 py-4">
@@ -125,7 +139,7 @@ export default function Home() {
                 <label className="cursor-pointer">
                   <input
                     type="file"
-                    accept=".csv"
+                    accept=".csv,.txt,.json,.html"
                     onChange={(e) => e.target.files?.[0] && handleFileChange(e.target.files[0], 1)}
                     className="hidden"
                     id="file1"
@@ -148,7 +162,7 @@ export default function Home() {
                 <label className="cursor-pointer">
                   <input
                     type="file"
-                    accept=".csv"
+                    accept=".csv,.txt,.json,.html"
                     onChange={(e) => e.target.files?.[0] && handleFileChange(e.target.files[0], 2)}
                     className="hidden"
                     id="file2"
@@ -171,7 +185,7 @@ export default function Home() {
                 <button
                   onClick={compareCSVs}
                   disabled={isComparing || !(file1 || file2)}
-                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all"
+                  className="px-6 py-2 bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all"
                 >
                   {isComparing ? (
                     <>
@@ -199,7 +213,7 @@ export default function Home() {
 
           {hasCompared && diff.length === 0 && (
             <div className="h-full flex items-center justify-center">
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-2 border-green-300 dark:border-green-800 rounded-2xl p-12 text-center shadow-xl">
+              <div className="bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-2 border-green-300 dark:border-green-800 rounded-2xl p-12 text-center shadow-xl">
                 <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -213,7 +227,7 @@ export default function Home() {
 
           {diff.length > 0 && (
             <div className="h-full bg-white dark:bg-zinc-900 rounded-xl shadow-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800">
-              <div className="bg-gradient-to-r from-zinc-100 to-zinc-50 dark:from-zinc-800 dark:to-zinc-900 px-6 py-3 border-b border-zinc-200 dark:border-zinc-700">
+              <div className="bg-linear-to-r from-zinc-100 to-zinc-50 dark:from-zinc-800 dark:to-zinc-900 px-6 py-3 border-b border-zinc-200 dark:border-zinc-700">
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                   <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-100">
@@ -252,7 +266,7 @@ export default function Home() {
                         <div className="grid grid-cols-2 h-full">
                           <div className="bg-red-50 dark:bg-red-950/30 border-l-4 border-red-600">
                             <div className="flex">
-                              <div className="w-16 flex-shrink-0 text-right pr-4 py-2 text-red-600 dark:text-red-400 select-none">
+                              <div className="w-16 shrink-0 text-right pr-4 py-2 text-red-600 dark:text-red-400 select-none">
                                 {result.row + 1}
                               </div>
                               <div className="flex-1 py-2 pr-4 text-red-800 dark:text-red-200">
@@ -269,7 +283,7 @@ export default function Home() {
                           <div className="bg-zinc-50 dark:bg-zinc-950/30"></div>
                           <div className="bg-green-50 dark:bg-green-950/30 border-l-4 border-green-600">
                             <div className="flex">
-                              <div className="w-16 flex-shrink-0 text-right pr-4 py-2 text-green-600 dark:text-green-400 select-none">
+                              <div className="w-16 shrink-0 text-right pr-4 py-2 text-green-600 dark:text-green-400 select-none">
                                 {result.row + 1}
                               </div>
                               <div className="flex-1 py-2 pr-4 text-green-800 dark:text-green-200">
@@ -284,7 +298,7 @@ export default function Home() {
                         <div className="grid grid-cols-2 h-full">
                           <div className="bg-red-50 dark:bg-red-950/30 border-l-4 border-red-600">
                             <div className="flex">
-                              <div className="w-16 flex-shrink-0 text-right pr-4 py-2 text-red-600 dark:text-red-400 select-none">
+                              <div className="w-16 shrink-0 text-right pr-4 py-2 text-red-600 dark:text-red-400 select-none">
                                 {result.row + 1}
                               </div>
                               <div className="flex-1 py-2 pr-4 text-red-800 dark:text-red-200">
@@ -307,7 +321,7 @@ export default function Home() {
                           </div>
                           <div className="bg-green-50 dark:bg-green-950/30 border-l-4 border-green-600">
                             <div className="flex">
-                              <div className="w-16 flex-shrink-0 text-right pr-4 py-2 text-green-600 dark:text-green-400 select-none">
+                              <div className="w-16 shrink-0 text-right pr-4 py-2 text-green-600 dark:text-green-400 select-none">
                                 {result.row + 1}
                               </div>
                               <div className="flex-1 py-2 pr-4 text-green-800 dark:text-green-200">
